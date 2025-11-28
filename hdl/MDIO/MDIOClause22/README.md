@@ -7,9 +7,14 @@ Specifically, this core implements the Clause 22 variant.
 
 The interface for this core is implemented as a single 32-bit register and is described as follows:
 
-|      31- 29       |            28            |               27               |             26             |                 25-21                  |                     20 - 16                      |          15 - 0          |
-| :---------------: | :----------------------: | :----------------------------: | :------------------------: | :------------------------------------: | :----------------------------------------------: | :----------------------: |
-| Unused / Reserved | [Busy](#register---busy) | [Execute](#register---execute) | [Write](#register---write) | [PHY Address](#register---phy-address) | [Register Address](#register---register-address) | [Data](#register---data) |
+|                      31- 29                       |            28            |               27               |             26             |                 25-21                  |                     20 - 16                      |          15 - 0          |
+| :-----------------------------------------------: | :----------------------: | :----------------------------: | :------------------------: | :------------------------------------: | :----------------------------------------------: | :----------------------: |
+| [Unused / Reserved](#register---unused--reserved) | [Busy](#register---busy) | [Execute](#register---execute) | [Write](#register---write) | [PHY Address](#register---phy-address) | [Register Address](#register---register-address) | [Data](#register---data) |
+
+### Register - Unused / Reserved
+
+These bits in the register are reserved for future use / currently unused.
+They shall be set to 0 when writing to the core and expected as undefined when reading.
 
 ### Register - Busy
 
