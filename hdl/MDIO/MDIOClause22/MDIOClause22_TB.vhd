@@ -26,7 +26,7 @@ architecture sim of MDIOClause22TBX is
   signal s_mdio_out_enable : std_logic;
 
 begin
-  MDIOClause22Core_inst : entity work.MDIOClause22Core
+  MDIOClause22Core_inst : entity work.MDIOClause22
     port map
     (
       mdio_clk        => s_mdio_clk,
