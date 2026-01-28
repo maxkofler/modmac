@@ -32,13 +32,20 @@ architecture rtl of MDIOClause22 is
   signal s_reg_addr     : std_logic_vector(4 downto 0);
   signal s_data         : std_logic_vector(15 downto 0);
 
-  signal s_prev_execute : std_logic := '0';
-  signal s_start        : std_logic := '0';
-  type t_State is (Idle, Preamble, Start1, Start2, Op1, Op2, PhyAddr, RegAddr, TA1, TA2, Data);
-  signal s_state : t_State := Idle;
+  signal s_prev_execute : std_logic                     := '0';
+  signal s_start        : std_logic                     := '0';
+  signal s_busy         : std_logic                     := '0';
+  signal s_mdio_out     : std_logic                     := '0';
+  signal s_mdio_oe      : std_logic                     := '0';
+  signal s_data_out     : std_logic_vector(15 downto 0) := x"0000";
+  type t_State is (Idle, Preamble, Start1, Start2, Op1, Op2, PhyAddr, RegAddr, TA1, TA2, Data, Present);
 begin
 
-  mdc <= mdio_clk;
+  mdc             <= mdio_clk and s_busy;
+  busy            <= s_busy;
+  data_out        <= s_data_out;
+  mdio_out        <= s_mdio_out;
+  mdio_out_enable <= s_mdio_oe;
 
   process (mdio_clk)
   begin
@@ -55,9 +62,9 @@ begin
     if falling_edge(mdio_clk) then
       case state is
         when Idle =>
-          mdio_out        <= '0';
-          mdio_out_enable <= '0';
-          busy            <= '0';
+          s_mdio_out <= '0';
+          s_mdio_oe  <= '0';
+          s_busy     <= '0';
 
           if s_start = '1' then
             s_write_enable <= write_enable = '1';
@@ -65,7 +72,7 @@ begin
             s_reg_addr     <= reg_addr;
             s_data         <= data_in;
 
-            busy <= '1';
+            s_busy <= '1';
 
             counter := (others => '0');
             state   := Preamble;
@@ -73,8 +80,8 @@ begin
           end if;
 
         when Preamble =>
-          mdio_out        <= '1';
-          mdio_out_enable <= '1';
+          s_mdio_out <= '1';
+          s_mdio_oe  <= '1';
           if counter >= 31 then
             report "Preamble -> Start";
             state := Start1;
@@ -82,83 +89,84 @@ begin
           counter := counter + 1;
 
         when Start1 =>
-          mdio_out <= '0';
+          s_mdio_out <= '0';
           state := Start2;
 
         when Start2 =>
-          mdio_out <= '1';
+          s_mdio_out <= '1';
           state := Op1;
 
         when Op1 =>
           if s_write_enable then
-            mdio_out <= '0';
+            s_mdio_out <= '0';
           else
-            mdio_out <= '1';
+            s_mdio_out <= '1';
           end if;
           state := Op2;
 
         when Op2 =>
           if s_write_enable then
-            mdio_out <= '1';
+            s_mdio_out <= '1';
           else
-            mdio_out <= '0';
+            s_mdio_out <= '0';
           end if;
           state   := PhyAddr;
           counter := (others => '0');
 
         when PhyAddr =>
           if counter >= 4 then
-            mdio_out <= s_phy_addr(0);
+            s_mdio_out <= s_phy_addr(0);
             counter := (others => '0');
             state   := RegAddr;
           else
-            mdio_out <= s_phy_addr(to_integer(4 - counter));
+            s_mdio_out <= s_phy_addr(to_integer(4 - counter));
             counter := counter + 1;
           end if;
 
         when RegAddr =>
           if counter >= 4 then
-            mdio_out <= s_reg_addr(0);
+            s_mdio_out <= s_reg_addr(0);
             counter := (others => '0');
             state   := TA1;
           else
-            mdio_out <= s_reg_addr(to_integer(4 - counter));
+            s_mdio_out <= s_reg_addr(to_integer(4 - counter));
             counter := counter + 1;
           end if;
 
         when TA1 =>
           if s_write_enable then
-            mdio_out <= '1';
+            s_mdio_out <= '1';
           else
-            mdio_out_enable <= '0';
+            s_mdio_oe <= '0';
           end if;
           state := TA2;
 
         when TA2 =>
-          mdio_out <= '0';
+          s_mdio_out <= '0';
           state := Data;
 
         when Data =>
           if s_write_enable then
-            mdio_out <= s_data(to_integer(15 - counter));
+            s_mdio_out <= s_data(to_integer(15 - counter));
           else
             s_data(to_integer(15 - counter)) <= mdio_in;
           end if;
 
           if counter >= 15 then
-            if not s_write_enable then
-              -- At the end of RX, present the data 
-              data_out <= s_data;
-            end if;
+            state := Present;
+          end if;
+          counter := counter + 1;
 
-            state := Idle;
+        when Present =>
+          if not s_write_enable then
+            -- At the end of RX, present the data
+            s_data_out <= s_data;
           end if;
 
-          counter := counter + 1;
+          state := Idle;
 
       end case;
     end if;
-    s_state <= state;
   end process;
 
 end architecture;
