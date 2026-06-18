@@ -1,0 +1,6 @@
+/db
+/questa
+
+# Files that end in '~' are backup files
+*~
+*.bak
