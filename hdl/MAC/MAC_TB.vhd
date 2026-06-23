@@ -4,7 +4,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 library modmac;
-use modmac.MAC;
+use modmac.MACAvalon;
 
 entity MAC_tb is
 end;
@@ -20,13 +20,18 @@ architecture bench of MAC_tb is
   signal xii_i_r : std_logic;
 begin
 
-  MAC_inst : entity MAC
+  MAC_inst : entity MACAvalon
     port map
     (
-      xii_i_c => xii_i_c,
-      xii_i_d => xii_i_d,
-      xii_i_e => xii_i_e,
-      xii_i_r => xii_i_r
+      avalon_clk       => xii_i_c,
+      reset_n          => '1',
+      mgt_avalon_read  => '0',
+      mgt_avalon_write => '0',
+      mgt_avalon_address => (others => '0'),
+      xii_i_c          => xii_i_c,
+      xii_i_d          => xii_i_d,
+      xii_i_e          => xii_i_e,
+      xii_i_r          => xii_i_r
     );
 
   xii_i_c <= not xii_i_c after clk_period/2;
